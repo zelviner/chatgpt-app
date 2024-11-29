@@ -1,18 +1,19 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
     {
         path: '/',
-        redirect: () => {
-            window.location.href = 'https://chat.openai.com/chat';  // 直接跳转到外部网址
+        component: {
+            // 使用一个简单的临时组件执行跳转逻辑
+            render() {
+                window.location.href = 'https://chat.openai.com/chat'
+            }
         }
     },
-
     {
         path: '/loading',
         component: () => import('../views/Loading.vue')
     },
-
     {
         path: '/error',
         component: () => import('../views/Error.vue')
@@ -20,7 +21,7 @@ const routes = [
 ]
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes
 })
 

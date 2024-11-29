@@ -4,12 +4,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
 let loadingWin, mainWin = null
 
+// 创建加载窗口
 function createLoadingWindow() {
   loadingWin = new BrowserWindow({
     width: 400, // 加载窗口宽度
     height: 300, // 加载窗口高度
     frame: false, // 无边框
-    alwaysOnTop: true, // 窗口置顶
+    alwaysOnTop: true, // 窗口始终在最前
     transparent: true, // 窗口透明
     resizable: false, // 禁止缩放
     skipTaskbar: true, // 不在任务栏显示
@@ -18,85 +19,90 @@ function createLoadingWindow() {
     },
   })
 
-  loadingWin.loadURL(process.env['ELECTRON_RENDERER_URL'] + "/loading")
+  // 开发环境下加载开发地址，生产环境加载打包后的页面
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    loadingWin.loadURL(process.env['ELECTRON_RENDERER_URL'] + '#/loading')
+  } else {
+    loadingWin.loadFile(join(__dirname, '../renderer/index.html'), { hash: '#/loading' })
+  }
 }
 
+// 创建主窗口
 function createMainWindow() {
-  // Create the browser window.
+  // 创建主窗口
   mainWin = new BrowserWindow({
     icon: 'public/image/chatgpt.ico',
     width: 1500,
     height: 900,
-    show: false,
-    autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    show: false, // 窗口初始时不显示
+    autoHideMenuBar: true, // 自动隐藏菜单栏
+    ...(process.platform === 'linux' ? { icon } : {}), // Linux 系统下设置图标
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      preload: join(__dirname, '../preload/index.js'), // 预加载脚本
+      sandbox: false, // 禁用沙盒
     }
   })
 
+  // 加载外部 URL
+  mainWin.loadURL("https://chat.openai.com/chat")
+
+  // 窗口准备显示时，关闭加载窗口
   mainWin.once('ready-to-show', () => {
-    if (loadingWin) loadingWin.close()
-    mainWin.show()
+    if (loadingWin) {
+      loadingWin.close() // 关闭加载窗口
+      loadingWin = null
+    }
+    mainWin.show() // 显示主窗口
   })
 
+  // 拦截窗口打开链接，使用默认浏览器打开
   mainWin.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
-    return { action: 'deny' }
+    return { action: 'deny' } // 阻止窗口打开
   })
 
+  // 加载失败时处理
   mainWin.webContents.on('did-fail-load', (event, errorCode) => {
-    if (errorCode != -3) {
-      mainWin.loadURL(process.env['ELECTRON_RENDERER_URL'] + "/error")
+    if (errorCode != -3) { // -3 是由于用户取消加载时的错误码，忽略
+      if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        mainWin.loadURL(process.env['ELECTRON_RENDERER_URL'] + '#/error')
+      } else {
+        mainWin.loadFile(join(__dirname, '../renderer/index.html'), { hash: '#/error' })
+      }
     }
   })
-
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  // if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-  // mainWin.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  mainWin.loadURL("https://chat.openai.com/chat")
-  // } else {
-  // mainWin.loadFile(join(__dirname, '../renderer/index.html'))
-  // }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// 当 Electron 完成初始化并准备创建浏览器窗口时调用该方法
 app.whenReady().then(() => {
-  // Set app user model id for windows
+  // 设置 Windows 系统下应用的用户模型 ID
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  // app.on('browser-window-created', (_, window) => {
-  //   optimizer.watchWindowShortcuts(window)
-  // })
+  // 监听重试事件
+  ipcMain.on('retry', () => {
+    // 关闭主窗口并重新创建加载窗口和主窗口
+    if (mainWin) {
+      mainWin.close()
+      mainWin = null
+    }
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+    createLoadingWindow()
+    createMainWindow()
+  })
 
+  // 创建加载窗口和主窗口
   createLoadingWindow()
   createMainWindow()
 
+  // macOS 下点击 dock 图标时，如果没有打开窗口，则重新创建主窗口
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// 当所有窗口都关闭时退出应用，macOS 下除外
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.

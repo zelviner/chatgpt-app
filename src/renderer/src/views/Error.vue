@@ -1,10 +1,10 @@
 <script setup>
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
 
 const retry = () => {
-    router.push('/')
+    console.log('send retry');
+
+    window.electron.ipcRenderer.send('retry')
 }
 
 </script>
@@ -14,11 +14,12 @@ const retry = () => {
         <!-- 图标 -->
         <img src="@public/image/chatgpt.ico" alt="ChatGPT">
         <!-- 错误标题 -->
-        <h1>Oops! Connection Error</h1>
+        <h1>连接错误!</h1>
         <!-- 错误提示信息 -->
-        <p>We couldn't load the page. Please check your internet connection and try again.</p>
+        <p>我们无法加载页面，请检查您的网络连接并重试。</p>
         <!-- 重试按钮 -->
-        <button @click="retry()">Retry</button>
+        <button @click="retry()">重试</button>
+
     </div>
 </template>
 

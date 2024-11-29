@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: chatgpt-app
+productName: ChatGPT
 directories:
   buildResources: build
 files:
@@ -11,12 +11,16 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: chatgpt-app
+  executableName: ChatGPT
+  icon: public/image/chatgpt.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  allowToChangeInstallationDirectory: true
+  perMachine: true
+  oneClick: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
