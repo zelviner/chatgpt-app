@@ -43,11 +43,10 @@ function createMainWindow() {
 
   mainWin.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
-    // mainWin.loadURL(details.url)
     return { action: 'deny' }
   })
 
-  mainWin.webContents.on('did-fail-load', (errorCode) => {
+  mainWin.webContents.on('did-fail-load', (event, errorCode) => {
     if (errorCode != -3) {
       mainWin.loadURL(process.env['ELECTRON_RENDERER_URL'] + "/error")
     }
