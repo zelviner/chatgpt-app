@@ -1,18 +1,20 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
 let loadingWin, mainWin = null
+const iconPath = join(__dirname, '../../public/image/chatgpt.ico')
+const iconPathMac = join(__dirname, '../../public/image/chatgpt.png')
 
 // 创建加载窗口
 function createLoadingWindow() {
   loadingWin = new BrowserWindow({
     width: 400, // 加载窗口宽度
     height: 300, // 加载窗口高度
-    frame: false, // 无边框
+    frame: false, // 无边框  
     alwaysOnTop: true, // 窗口始终在最前
     transparent: true, // 窗口透明
-    resizable: false, // 禁止缩放
+    resizable: false, // 禁止缩放 
     skipTaskbar: true, // 不在任务栏显示
     webPreferences: {
       devTools: false, // 禁用开发者工具
@@ -29,9 +31,10 @@ function createLoadingWindow() {
 
 // 创建主窗口
 function createMainWindow() {
+
   // 创建主窗口
   mainWin = new BrowserWindow({
-    icon: 'public/image/chatgpt.ico',
+    icon: process.platform === 'darwin' ? iconPathMac : iconPath, 
     width: 1500,
     height: 900,
     show: false, // 窗口初始时不显示
@@ -89,6 +92,22 @@ app.whenReady().then(() => {
     createLoadingWindow()
     createMainWindow()
   })
+
+if (process.platform === 'darwin') {
+  try {
+    const iconImage = nativeImage.createFromPath(iconPathMac)
+
+    if (!iconImage.isEmpty()) {
+      app.dock.setIcon(iconImage)
+      console.log('设置 Dock 图标成功')
+    } else {
+      console.warn('图标加载为空，未设置 Dock 图标')
+    }
+  } catch (err) {
+    console.error('设置 Dock 图标失败:', err)
+  }
+}
+
 
   // 创建加载窗口和主窗口
   createLoadingWindow()
